@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title></title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .video-column {
+            flex: 2; /* Takes twice the space of facts column */
+            min-width: 320px; /* Minimum width for video player */
+        }
+        .facts-column {
+            flex: 1;
+            min-width: 250px; /* Minimum width for facts list */
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        #youtubePlayerContainer {
+            width: 100%;
+            aspect-ratio: 16 / 9; /* Maintain aspect ratio for the video */
+            border-radius: 8px;
+            overflow: hidden; /* Ensures iframe corners are rounded if player div is */
+        }
+        #detailsSection {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #e9e9e9;
+            border-radius: 8px;
+        }
+        #detailsSection h3 {
+            margin-top: 0;
+        }
+        #factsList {
+            list-style-type: none;
+            padding: 0;
+        }
+        #factsList li {
+            padding: 10px;
+            margin-bottom: 8px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        #factsList li:hover {
+            background-color: #e0e0e0;
+        }
+        #factsList li.active {
+            background-color: #d1e7dd; /* A light green to indicate active fact */
+            font-weight: bold;
+        }
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .amazon-link-container {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="video-column">
+            <div id="youtubePlayerContainer"></div>
+            <div id="detailsSection">
+                <h3>Detailed Information</h3>
+                <p id="factDetails">Click on a fact from the list to see more details here and jump to the relevant part in the video.</p>
+                <div id="amazonLinkContainer" class="amazon-link-container"></div>
+                <p>Reference: <a id="wikiLink" href="https://en.wikipedia.org/wiki/House_dust_mite" target="_blank" rel="noopener noreferrer">Wikipedia (General)</a></p>
+            </div>
+        </div>
+
+        <div class="facts-column">
+            <h2>Important Facts</h2>
+            <ul id="factsList">
+                <!-- Facts will be populated by JavaScript -->
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const factsList = document.getElementById('factsList');
+        const factDetailsElem = document.getElementById('factDetails');
+        const wikiLinkElem = document.getElementById('wikiLink');
+        const amazonLinkContainerElem = document.getElementById('amazonLinkContainer');
+        let player;
+
+        // --- IMPORTANT: REPLACE THIS WITH THE ACTUAL YOUTUBE VIDEO ID ---
+        const YOUTUBE_VIDEO_ID = 'D6ENIlwsxTI'; // "I Didn't Know That - Dust Mites"
+
+        const factsData = [
+            {
+                id: 1,
+                title: "What are Dust Mites?",
+                timestamp: 34,
+                shortFact: "Dust mites (e.g., Dermatophagoides pteronyssinus) are microscopic creatures in homes.",
+                detailedInfo: "Dust mites are microscopic arachnids, not insects, closely related to spiders and ticks. They belong to the Pyroglyphidae family. Common species found in homes include *Dermatophagoides pteronyssinus* (European house dust mite) and *Dermatophagoides farinae* (American house dust mite). They are a major component of house dust and thrive in warm, humid environments.",
+                wikiLink: "https://en.wikipedia.org/wiki/House_dust_mite"
+            },
+            {
+                id: 2,
+                title: "Dust Mite Size & Senses",
+                timestamp: 50,
+                shortFact: "They are 0.2-0.3 mm long, invisible to the naked eye, and have no eyes.",
+                detailedInfo: "A typical house dust mite measures between 0.2 and 0.3 millimeters in length, making them virtually invisible to the unaided eye. Their bodies are translucent. Interestingly, these mites do not possess eyes and navigate their environment using other sensory mechanisms, such as sensing chemicals and temperature changes.",
+                wikiLink: "https://en.wikipedia.org/wiki/House_dust_mite#Characteristics"
+            },
+            {
+                id: 3,
+                title: "Dust Mites in Your Bed",
+                timestamp: 63,
+                shortFact: "An average bed can house 100,000 to 10 million dust mites.",
+                detailedInfo: "Beds, mattresses, and pillows provide an ideal habitat for dust mites. This is due to the warmth, humidity (from perspiration and respiration), and a constant supply of their primary food source: shed human skin cells. It's estimated that a typical used mattress can contain anywhere from 100,000 to over 10 million dust mites.",
+                wikiLink: "https://en.wikipedia.org/wiki/House_dust_mite#Distribution_and_habitat",
+                // --- REPLACE WITH ACTUAL AMAZON LINK ---
+                amazonLink: "https://www.amazon.ca/LinenSpa-Encasement-Waterproof-Breathable-Protector/dp/B00Z06E2IU?crid=3CV380PTKROL0&dib=eyJ2IjoiMSJ9.v3e_TxbSRoQIihKDkonhyQpeOOVUpYWKrmRKwjMyJefLHKn5Lo_UWN2ELgW2f_xH9aJDW40tb3f25OBBSQeX-f6RRKiv7yqx8bVoA0GhsseHRc85Ec5NE7KE0XFmxfjwGJlLhFmx_MhMwYORhQ_p451txGqgXts0maqipYYcLSBvYRNQX3533NmLYORwStjWUmYCTIrW1dhlLpI8UjkNhn-duJ722_nCGD1laChlnz89ccYA8yvSKlDUOXtrM_XgDpuvzoEbaj1BzyEu1NIgcN0HulOkQro6jNYKLAg15d8.xnfyat5kBVA438-583dAVIvOSg-FZlNp-0fdNMWJGYw&dib_tag=se&keywords=house%2Bdust%2Bmite%2Bmattress%2Bcover&qid=1748187415&sprefix=house%2Bdust%2Bmite%2Bmattress%2Bcover%2Caps%2C160&sr=8-6&th=1",
+                amazonLinkText: "Shop for Dust Mite Mattress Protector Covers on Amazon"
+            },
+            {
+                id: 4,
+                title: "Pillow Contamination",
+                timestamp: 68,
+                shortFact: "10% of a two-year-old pillow's weight can be dead mites and their droppings.",
+                detailedInfo: "Over time, pillows can accumulate a significant amount of dead dust mites and their allergenic fecal matter. Some studies suggest that after two years, as much as 10% of the weight of a pillow can be attributed to this accumulation. The primary allergens are proteins found in their feces (like Der p 1) and decaying body fragments.",
+                wikiLink: "https://en.wikipedia.org/wiki/Dust_mite_allergy",
+                // --- REPLACE WITH ACTUAL AMAZON LINK ---
+                amazonLink: "https://www.amazon.ca/LinenSpa-Encasement-Waterproof-Breathable-Protector/dp/B00Z06E2IU?crid=3CV380PTKROL0&dib=eyJ2IjoiMSJ9.v3e_TxbSRoQIihKDkonhyQpeOOVUpYWKrmRKwjMyJefLHKn5Lo_UWN2ELgW2f_xH9aJDW40tb3f25OBBSQeX-f6RRKiv7yqx8bVoA0GhsseHRc85Ec5NE7KE0XFmxfjwGJlLhFmx_MhMwYORhQ_p451txGqgXts0maqipYYcLSBvYRNQX3533NmLYORwStjWUmYCTIrW1dhlLpI8UjkNhn-duJ722_nCGD1laChlnz89ccYA8yvSKlDUOXtrM_XgDpuvzoEbaj1BzyEu1NIgcN0HulOkQro6jNYKLAg15d8.xnfyat5kBVA438-583dAVIvOSg-FZlNp-0fdNMWJGYw&dib_tag=se&keywords=house%2Bdust%2Bmite%2Bmattress%2Bcover&qid=1748187415&sprefix=house%2Bdust%2Bmite%2Bmattress%2Bcover%2Caps%2C160&sr=8-6&th=1",
+                amazonLinkText: "Shop for Hypoallergenic Beddings on Amazon"
+            },
+            {
+                id: 5,
+                title: "What Dust Mites Eat",
+                timestamp: 77, // Actual timestamp is 1:18
+                shortFact: "Dust mites primarily feed on dead skin cells shed by humans and pets.",
+                detailedInfo: "The main component of a dust mite's diet is detritus, particularly the tiny flakes of skin that humans and animals shed naturally. An average adult human can shed about 1.5 grams of skin per day, which is enough to feed a million dust mites. They also consume other organic matter like some types of mold and pollen.",
+                wikiLink: "https://en.wikipedia.org/wiki/House_dust_mite#Diet"
+            }
+        ];
+
+        function onYouTubeIframeAPIReady() {
+            player = new YT.Player('youtubePlayerContainer', {
+                height: '100%',
+                width: '100%',
+                videoId: YOUTUBE_VIDEO_ID,
+                playerVars: { 'playsinline': 1 },
+            });
+        }
+
+        function jumpToTime(seconds) {
+            if (player && typeof player.seekTo === 'function') {
+                player.seekTo(seconds, true);
+                player.playVideo();
+            }
+        }
+
+        function showDetails(fact) {
+            factDetailsElem.innerHTML = `<strong>${fact.title}:</strong> ${fact.detailedInfo.replace(/\*(.*?)\*/g, '<em>$1</em>')}`;
+            wikiLinkElem.href = fact.wikiLink;
+            wikiLinkElem.textContent = `Wikipedia (${fact.title})`;
+
+            // Clear previous Amazon link
+            amazonLinkContainerElem.innerHTML = '';
+
+            // Add Amazon link if it exists for the current fact
+            if (fact.amazonLink && fact.amazonLinkText) {
+                const amazonLinkAnchor = document.createElement('a');
+                amazonLinkAnchor.href = fact.amazonLink;
+                amazonLinkAnchor.textContent = fact.amazonLinkText;
+                amazonLinkAnchor.target = "_blank";
+                amazonLinkAnchor.rel = "noopener noreferrer sponsored"; // Added "sponsored" for transparency
+                amazonLinkContainerElem.appendChild(document.createTextNode("Related Product: "));
+                amazonLinkContainerElem.appendChild(amazonLinkAnchor);
+            }
+
+            document.querySelectorAll('#factsList li').forEach(li => li.classList.remove('active'));
+            const activeLi = document.querySelector(`#factsList li[data-id='${fact.id}']`);
+            if (activeLi) {
+                activeLi.classList.add('active');
+            }
+        }
+
+        factsData.forEach(fact => {
+            const listItem = document.createElement('li');
+            listItem.textContent = `${fact.id}. ${fact.shortFact} (at ${new Date(fact.timestamp * 1000).toISOString().substr(14, 5)})`;
+            listItem.setAttribute('data-id', fact.id);
+            listItem.addEventListener('click', () => {
+                jumpToTime(fact.timestamp);
+                showDetails(fact);
+            });
+            factsList.appendChild(listItem);
+        });
+
+        var tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        var firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+    </script>
+</body>
+</html>
