@@ -74,6 +74,20 @@
         .amazon-link-container {
             margin-top: 10px;
         }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            .container {
+                flex-direction: column;
+                gap: 10px;
+            }
+            .video-column, .facts-column {
+                min-width: 100%;
+                box-sizing: border-box;
+            }
+        }
     </style>
 </head>
 <body>
